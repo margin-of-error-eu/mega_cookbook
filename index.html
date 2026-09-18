@@ -10,7 +10,7 @@
     --bg:#231825;--bg2:#2e2130;--panel:#352639;--panel-edge:#4a3650;
     --ink:#f1e8dc;--ink-dim:#b7a4ae;--ink-faint:#8b7684;--hi:#e7c56a;--warn:#e0a86a;--veg:#8aa457;
     --levant:#dca641;--maghreb:#d0603c;--med:#8aa457;--latin:#c14a34;
-    --easia:#8e7fc4;--sasia:#e6a521;--cee:#c07a34;--carib:#3fa695;--namerica:#5f92bf;
+    --easia:#8e7fc4;--sasia:#e6a521;--cee:#c07a34;--carib:#3fa695;--namerica:#5f92bf;--other:#8f8598;
   }
   *{box-sizing:border-box} html{-webkit-text-size-adjust:100%}
   body{margin:0;color:var(--ink);font-family:"IBM Plex Sans",system-ui,sans-serif;line-height:1.5;
@@ -135,6 +135,8 @@
   .addform[hidden]{display:none}
   .addrecipe{font:inherit;font-size:.8rem;color:var(--veg);background:none;border:none;cursor:pointer;padding:0;text-decoration:underline;text-underline-offset:3px}
   .addname{min-width:240px}
+  .renameinput{font:inherit;font-size:.85rem;background:var(--bg2);color:var(--ink);border:1px solid var(--panel-edge);border-radius:8px;padding:5px 9px;min-width:220px}
+  .statbtn[aria-pressed]{white-space:nowrap}
   .recipe .rh.sec{color:var(--levant);font-weight:700;letter-spacing:0;text-transform:none;margin-top:14px;font-size:.85rem}
   .deletedbar{margin-top:20px;padding-top:14px;border-top:1px solid var(--panel-edge);display:flex;flex-wrap:wrap;gap:8px;align-items:center}
   .deletedbar[hidden]{display:none}
@@ -214,7 +216,7 @@
   <h1>Ízmátrix</h1>
   <p class="equation"><b>core</b><span class="x">×</span>seasoning<span class="x">×</span>sauce</p>
 
-  <div class="syncbar"><span id="syncState" class="syncbadge">starting…</span><span class="buildstamp">build 2026-09-17</span></div>
+  <div class="syncbar"><span id="syncState" class="syncbadge">starting…</span><span class="buildstamp">build 2026-09-18</span></div>
   <div class="tabs" role="tablist">
     <button class="tabbtn" role="tab" data-tab="matrix" aria-selected="true">Flavor Matrix</button>
     <button class="tabbtn" role="tab" data-tab="cookbook" aria-selected="false">Cookbook</button>
@@ -295,13 +297,13 @@ const REGIONS={
   levant:{label:"Levant",c:"var(--levant)"},maghreb:{label:"North Africa",c:"var(--maghreb)"},
   med:{label:"Mediterranean",c:"var(--med)"},latin:{label:"Latin America",c:"var(--latin)"},namerica:{label:"North America",c:"var(--namerica)"},
   easia:{label:"East Asia",c:"var(--easia)"},sasia:{label:"South Asia",c:"var(--sasia)"},
-  cee:{label:"Central Europe",c:"var(--cee)"},carib:{label:"Caribbean",c:"var(--carib)"}
+  cee:{label:"Central Europe",c:"var(--cee)"},carib:{label:"Caribbean",c:"var(--carib)"},other:{label:"Other",c:"var(--other)"}
 };
-const FLAVOR_ORDER=["earthy","herby","bright","spicy-hot","smoky","nutty","sweet","tangy","umami","warm-spiced","fresh","creamy","fermented"];
+const FLAVOR_ORDER=["earthy","herby","citrusy","spicy-hot","smoky","nutty","sweet","tangy","umami","warm-spiced","fresh","creamy","fermented"];
 const SEASON_ORDER=["spring","summer","autumn","winter","all-year"];
 const MOOD_ORDER=["cozy","fresh & light","punchy","dinner-party","quick & lazy","adventurous"];
 const EFFORT_ORDER=["easy","medium","project"];
-const TYPE_ORDER=["soup","main","dinner","side","dip","breakfast","dessert"];
+const TYPE_ORDER=["soup","main","dinner","side","snack","dip","breakfast","dessert"];
 const LABEL={bright:"bright & citrusy",tangy:"tangy / sour",umami:"umami / savoury",fermented:"funky / fermented"};
 const lab=t=>LABEL[t]||t;
 
@@ -360,6 +362,9 @@ function applyStateObj(p){
   STATE.overrides=p.overrides||{};
   STATE.menu={dishes:(p.menu&&p.menu.dishes)||[],combos:(p.menu&&p.menu.combos)||[]};
   STATE.dish=p.dish||{}; STATE.lists=p.lists||null; STATE.custom=p.custom||[]; STATE.hidden=p.hidden||{};
+  const _mig=a=>Array.isArray(a)?a.map(x=>x==="bright"?"citrusy":x):a;
+  Object.values(STATE.dish).forEach(o=>{if(o&&o.fl)o.fl=_mig(o.fl);});
+  (STATE.custom||[]).forEach(c=>{if(c&&c.fl)c.fl=_mig(c.fl);});
 }
 async function loadState(){
   // local first (instant paint), then cloud (authoritative if present)
@@ -371,6 +376,9 @@ async function loadState(){
 }
 function saveState(){try{LS.set("izmatrix-state",JSON.stringify(STATE));}catch(e){} cloudSave();}
 function dv(d,field){const o=STATE.dish[d.n];return (o&&o[field]!==undefined)?o[field]:d[field];}
+function DN(d){return dv(d,"dn")||d.n;}
+function dishStat(d){return dv(d,"st")||"new";}
+function findByName(n){return AD().find(d=>d.n===n);}
 function setDish(n,field,val){const o=STATE.dish[n]=STATE.dish[n]||{};if(val===null||val===undefined)delete o[field];else o[field]=val;if(!Object.keys(o).length)delete STATE.dish[n];saveState();refreshAll();}
 function AD(){return DISHES.concat(STATE.custom||[]).filter(d=>!(STATE.hidden||{})[d.n]);}
 function delDish(n){if((STATE.custom||[]).some(d=>d.n===n)){STATE.custom=(STATE.custom||[]).filter(d=>d.n!==n);}else{(STATE.hidden=STATE.hidden||{})[n]=true;}delete STATE.dish[n];saveState();refreshAll();}
@@ -436,7 +444,7 @@ const SEA={
   dukkah:{n:"Dukkah",r:"levant",s:"new",fl:["nutty","earthy"],se:["all-year"],mo:["quick & lazy","adventurous"],fish:true,ing:"toasted hazelnut, sesame, cumin, coriander, salt"},
   sagebutter:{n:"Sage–brown butter",r:"cee",s:"new",fl:["nutty","earthy"],se:["autumn","winter"],mo:["cozy"],ing:"butter, fresh sage, optional garlic"},
   caraway:{n:"Caraway–juniper",r:"cee",s:"new",fl:["earthy","herby","warm-spiced"],se:["autumn","winter"],mo:["cozy"],ing:"caraway seed, juniper berries, black pepper, bay"},
-  chermS:{n:"Chermoula (rub)",r:"maghreb",s:"new",fl:["herby","bright","earthy"],se:["spring","summer"],mo:["fresh & light","adventurous"],fish:true,ing:"cumin, coriander, paprika, garlic, fresh coriander & parsley, lemon"},
+  chermS:{n:"Chermoula (rub)",r:"maghreb",s:"new",fl:["herby","citrusy","earthy"],se:["spring","summer"],mo:["fresh & light","adventurous"],fish:true,ing:"cumin, coriander, paprika, garlic, fresh coriander & parsley, lemon"},
   harissaS:{n:"Harissa",r:"maghreb",s:"new",fl:["spicy-hot","smoky"],se:["all-year"],mo:["punchy"],ing:"dried chili, garlic, cumin, coriander, caraway, olive oil (a paste)"},
   misoS:{n:"Miso–mirin",r:"easia",s:"new",fl:["umami","sweet","fermented"],se:["autumn","winter"],mo:["cozy","dinner-party"],fish:true,ing:"white or red miso, mirin, soy, a little sugar"},
   shichimi:{n:"Furikake / shichimi",r:"easia",s:"new",fl:["umami","nutty","spicy-hot"],se:["all-year"],mo:["quick & lazy","adventurous"],fish:true,ing:"chili, sansho pepper, dried seaweed, sesame, dried citrus peel"},
@@ -452,13 +460,13 @@ const SAU={
   mastokhiar:{n:"Mast-o-khiar",r:"levant",s:"have",fl:["fresh","creamy","tangy"],se:["summer"],mo:["fresh & light","quick & lazy"],ing:"yogurt, cucumber, mint, optional walnut & dried rose"},
   borani:{n:"Borani",r:"levant",s:"have",fl:["creamy","earthy","tangy"],se:["all-year"],mo:["cozy","quick & lazy"],ing:"yogurt, spinach (or beet), garlic, mint"},
   bissara:{n:"Bissara",r:"maghreb",s:"have",fl:["earthy","creamy"],se:["autumn","winter"],mo:["cozy"],ing:"dried fava or split peas, garlic, cumin, olive oil, lemon"},
-  chimichurri:{n:"Chimichurri",r:"latin",s:"have",fl:["herby","bright","tangy"],se:["summer"],mo:["fresh & light","punchy"],ing:"parsley, oregano, garlic, red wine vinegar, chili flakes, olive oil"},
-  salsa:{n:"Salsa / pico",r:"latin",s:"have",fl:["fresh","bright","spicy-hot"],se:["summer"],mo:["fresh & light","quick & lazy"],ing:"tomato, onion, jalapeño, coriander, lime"},
-  guac:{n:"Guacamole",r:"latin",s:"have",fl:["creamy","fresh","bright"],se:["summer"],mo:["quick & lazy"],ing:"avocado, lime, onion, coriander, chili"},
-  salsaverde:{n:"Salsa verde",r:"latin",s:"have",fl:["bright","tangy","herby"],se:["summer"],mo:["fresh & light"],ing:"tomatillo, jalapeño, coriander, onion, lime"},
-  mangoguac:{n:"Mango guac",r:"carib",s:"have",fl:["fresh","sweet","bright"],se:["summer"],mo:["fresh & light","adventurous"],ing:"mango, avocado, 45 ml (3 tbsp) lime juice, red onion, chili, coriander, cumin"},
-  mojo:{n:"Mojo",r:"carib",s:"new",fl:["bright","herby","tangy"],se:["summer","all-year"],mo:["fresh & light","quick & lazy"],fish:true,ing:"sour orange (or lime+orange), garlic, cumin, oregano, olive oil"},
-  pikliz:{n:"Pikliz",r:"carib",s:"new",fl:["spicy-hot","tangy","bright"],se:["summer"],mo:["punchy","adventurous"],ing:"cabbage, carrot, scotch bonnet, shallot, lime, vinegar"},
+  chimichurri:{n:"Chimichurri",r:"latin",s:"have",fl:["herby","citrusy","tangy"],se:["summer"],mo:["fresh & light","punchy"],ing:"parsley, oregano, garlic, red wine vinegar, chili flakes, olive oil"},
+  salsa:{n:"Salsa / pico",r:"latin",s:"have",fl:["fresh","citrusy","spicy-hot"],se:["summer"],mo:["fresh & light","quick & lazy"],ing:"tomato, onion, jalapeño, coriander, lime"},
+  guac:{n:"Guacamole",r:"latin",s:"have",fl:["creamy","fresh","citrusy"],se:["summer"],mo:["quick & lazy"],ing:"avocado, lime, onion, coriander, chili"},
+  salsaverde:{n:"Salsa verde",r:"latin",s:"have",fl:["citrusy","tangy","herby"],se:["summer"],mo:["fresh & light"],ing:"tomatillo, jalapeño, coriander, onion, lime"},
+  mangoguac:{n:"Mango guac",r:"carib",s:"have",fl:["fresh","sweet","citrusy"],se:["summer"],mo:["fresh & light","adventurous"],ing:"mango, avocado, 45 ml (3 tbsp) lime juice, red onion, chili, coriander, cumin"},
+  mojo:{n:"Mojo",r:"carib",s:"new",fl:["citrusy","herby","tangy"],se:["summer","all-year"],mo:["fresh & light","quick & lazy"],fish:true,ing:"sour orange (or lime+orange), garlic, cumin, oregano, olive oil"},
+  pikliz:{n:"Pikliz",r:"carib",s:"new",fl:["spicy-hot","tangy","citrusy"],se:["summer"],mo:["punchy","adventurous"],ing:"cabbage, carrot, scotch bonnet, shallot, lime, vinegar"},
   satay:{n:"Satay / peanut",r:"easia",s:"have",fl:["nutty","umami","sweet"],se:["all-year"],mo:["quick & lazy"],ing:"peanut butter, soy, lime, garlic, chili, a little sugar, optional coconut milk"},
   katsu:{n:"Katsu",r:"easia",s:"have",fl:["warm-spiced","umami"],se:["autumn","winter"],mo:["cozy"],ing:"onion, carrot, garlic, curry powder, durum flour, stock, soy, honey",cav:"roux / starch-thickened"},
   bbq:{n:"Hunor BBQ",r:"carib",s:"have",fl:["smoky","sweet","tangy"],se:["summer"],mo:["punchy"],ing:"tomato/ketchup, brown sugar, vinegar, smoked paprika, worcestershire, mustard",cav:"exceso calorías — sugar-forward"},
@@ -466,26 +474,26 @@ const SAU={
   remoulade:{n:"Remoulade",r:"med",s:"have",fl:["creamy","tangy","herby"],se:["all-year"],mo:["quick & lazy"],ing:"yogurt or mayo base, mustard, cornichons, capers, herbs"},
   mustardtejfol:{n:"Mustard–tejföl",r:"cee",s:"have",fl:["tangy","creamy"],se:["autumn"],mo:["cozy"],ing:"tejföl or Greek yogurt, dijon or whole-grain mustard, lemon"},
   greentahini:{n:"Green tahini",r:"levant",s:"new",fl:["nutty","herby","creamy"],se:["all-year"],mo:["quick & lazy","fresh & light"],fish:true,ing:"tahini, parsley or coriander, garlic, lemon, water"},
-  zhoug:{n:"Zhoug",r:"maghreb",s:"new",fl:["spicy-hot","herby","bright"],se:["spring","summer"],mo:["punchy","adventurous"],fish:true,ing:"coriander, parsley, green chili, garlic, cumin, cardamom, olive oil"},
-  gremolata:{n:"Gremolata",r:"med",s:"new",fl:["bright","herby","fresh"],se:["spring","summer"],mo:["fresh & light","quick & lazy"],fish:true,ing:"parsley, lemon zest, garlic — that's it"},
+  zhoug:{n:"Zhoug",r:"maghreb",s:"new",fl:["spicy-hot","herby","citrusy"],se:["spring","summer"],mo:["punchy","adventurous"],fish:true,ing:"coriander, parsley, green chili, garlic, cumin, cardamom, olive oil"},
+  gremolata:{n:"Gremolata",r:"med",s:"new",fl:["citrusy","herby","fresh"],se:["spring","summer"],mo:["fresh & light","quick & lazy"],fish:true,ing:"parsley, lemon zest, garlic — that's it"},
   romesco:{n:"Romesco",r:"med",s:"new",fl:["nutty","smoky","sweet"],se:["autumn"],mo:["dinner-party"],fish:true,ing:"roasted red pepper, almonds, tomato, garlic, sherry vinegar, smoked paprika, olive oil"},
   dillmustard:{n:"Dill–mustard (Scandi)",r:"cee",s:"new",fl:["tangy","herby","sweet"],se:["spring","summer"],mo:["fresh & light","dinner-party"],fish:true,ing:"dijon, whole-grain mustard, honey, dill, vinegar, oil"},
-  ponzu:{n:"Ponzu + sesame",r:"easia",s:"new",fl:["umami","bright","tangy"],se:["all-year"],mo:["fresh & light","quick & lazy"],fish:true,ing:"soy, citrus (yuzu or lemon), rice vinegar, mirin, kombu/dashi + sesame"},
+  ponzu:{n:"Ponzu + sesame",r:"easia",s:"new",fl:["umami","citrusy","tangy"],se:["all-year"],mo:["fresh & light","quick & lazy"],fish:true,ing:"soy, citrus (yuzu or lemon), rice vinegar, mirin, kombu/dashi + sesame"},
   gochujangglaze:{n:"Gochujang glaze",r:"easia",s:"new",fl:["spicy-hot","sweet","fermented"],se:["all-year"],mo:["punchy","adventurous"],ing:"gochujang, soy, honey, garlic, sesame oil, rice vinegar"},
   misoglaze:{n:"Miso glaze",r:"easia",s:"new",fl:["umami","sweet","fermented"],se:["autumn","winter"],mo:["cozy","dinner-party"],fish:true,ing:"miso, mirin, sake or rice vinegar, a little sugar"},
-  nuoccham:{n:"Nuoc cham",r:"easia",s:"new",fl:["bright","tangy","spicy-hot","fermented"],se:["summer"],mo:["fresh & light","adventurous"],fish:true,ing:"fish sauce, lime, sugar, garlic, chili, water"},
+  nuoccham:{n:"Nuoc cham",r:"easia",s:"new",fl:["citrusy","tangy","spicy-hot","fermented"],se:["summer"],mo:["fresh & light","adventurous"],fish:true,ing:"fish sauce, lime, sugar, garlic, chili, water"},
   harissayog:{n:"Harissa-yogurt",r:"maghreb",s:"new",fl:["spicy-hot","creamy","tangy"],se:["all-year"],mo:["punchy","quick & lazy"],ing:"harissa paste, Greek yogurt, lemon"},
   chraime:{n:"Chraime (tomato-pepper braise)",r:"maghreb",s:"new",fl:["spicy-hot","warm-spiced"],se:["autumn","winter"],mo:["cozy","adventurous"],fish:true,ing:"tomato, red pepper, garlic, paprika, cumin, chili, olive oil"},
-  chermSauce:{n:"Chermoula",r:"maghreb",s:"new",fl:["herby","bright","earthy"],se:["spring","summer"],mo:["fresh & light","adventurous"],fish:true,ing:"fresh coriander & parsley, garlic, cumin, paprika, lemon, olive oil"},
+  chermSauce:{n:"Chermoula",r:"maghreb",s:"new",fl:["herby","citrusy","earthy"],se:["spring","summer"],mo:["fresh & light","adventurous"],fish:true,ing:"fresh coriander & parsley, garlic, cumin, paprika, lemon, olive oil"},
   chutney:{n:"Apple / quince chutney",r:"cee",s:"new",fl:["sweet","tangy","warm-spiced"],se:["autumn","winter"],mo:["cozy","dinner-party"],ing:"apple or quince, onion, cider vinegar, sugar, warm spices",cav:"exceso calorías — sugar-forward"},
   cranberry:{n:"Cranberry–port",r:"cee",s:"new",fl:["sweet","tangy","warm-spiced"],se:["winter"],mo:["dinner-party","cozy"],ing:"cranberries, port, orange, sugar",cav:"exceso calorías — sugar-forward"},
-  horseradish:{n:"Horseradish",r:"cee",s:"new",fl:["spicy-hot","bright"],se:["winter"],mo:["punchy","dinner-party"],ing:"grated horseradish, tejföl or crème fraîche, vinegar"},
-  lemongravy:{n:"Lemon-garlic gravy",r:"med",s:"new",fl:["bright","umami"],se:["all-year"],mo:["cozy"],ing:"pan juices, stock, lemon, garlic, butter, a little flour",cav:"roux / starch-thickened"}
+  horseradish:{n:"Horseradish",r:"cee",s:"new",fl:["spicy-hot","citrusy"],se:["winter"],mo:["punchy","dinner-party"],ing:"grated horseradish, tejföl or crème fraîche, vinegar"},
+  lemongravy:{n:"Lemon-garlic gravy",r:"med",s:"new",fl:["citrusy","umami"],se:["all-year"],mo:["cozy"],ing:"pan juices, stock, lemon, garlic, butter, a little flour",cav:"roux / starch-thickened"}
 };
 const CORES=[
   {name:"Chicken",hu:"csirke / pulyka",fish:false,sea:["zaatar","baharat","cajun","mexican","greenseason","tandoori","gochu","berbere"],
    sau:["bazha","mastokhiar","bbq","salsa","mojo","greentahini","harissayog","zhoug","nuoccham"],
-   combos:[{t:["Za'atar","green tahini"],sub:"the Levantine roast — bright, herby, 25 min",r:"levant",fl:["herby","bright"],se:"all-year",mo:"quick & lazy",new:true},
+   combos:[{t:["Za'atar","green tahini"],sub:"the Levantine roast — bright, herby, 25 min",r:"levant",fl:["herby","citrusy"],se:"all-year",mo:"quick & lazy",new:true},
      {t:["Baharat","bazha"],sub:"warm-spiced chicken under Georgian walnut sauce",r:"levant",fl:["warm-spiced","nutty"],se:"autumn",mo:"cozy"},
      {t:["Gochujang glaze"],sub:"sticky Korean — pairs with the sesame slaw you do",r:"easia",fl:["spicy-hot","sweet"],se:"all-year",mo:"punchy",new:true}]},
   {name:"Pork",hu:"tarja / karaj",fish:false,sea:["sharena","cajun","caraway","fennelhdp","fivespice"],
@@ -497,12 +505,12 @@ const CORES=[
    combos:[{t:["Ras el-hanout","harissa-yogurt"],sub:"turkey breast that isn't boring",r:"maghreb",fl:["warm-spiced","spicy-hot"],se:"all-year",mo:"adventurous",new:true},
      {t:["Sage–brown butter","cranberry–port"],sub:"holds a whole Christmas plate",r:"cee",fl:["nutty","sweet"],se:"winter",mo:"dinner-party",new:true}]},
   {name:"Beef",hu:"marha",fish:false,sea:["mexican","cajun","berbere","coffeerub"],sau:["chimichurri","guac","gremolata","greentahini","horseradish"],
-   combos:[{t:["Chimichurri"],sub:"already yours, undefeated on steak bites",r:"latin",fl:["herby","bright"],se:"summer",mo:"fresh & light"},
-     {t:["Gremolata","horseradish"],sub:"lemony + sharp — your xmas orange-horseradish move",r:"med",fl:["bright","spicy-hot"],se:"winter",mo:"dinner-party",new:true}]},
+   combos:[{t:["Chimichurri"],sub:"already yours, undefeated on steak bites",r:"latin",fl:["herby","citrusy"],se:"summer",mo:"fresh & light"},
+     {t:["Gremolata","horseradish"],sub:"lemony + sharp — your xmas orange-horseradish move",r:"med",fl:["citrusy","spicy-hot"],se:"winter",mo:"dinner-party",new:true}]},
   {name:"Salmon & fish",hu:"lazac / hal",fish:true,sea:["zaatar","chermS","misoS","shichimi","dukkah"],
    sau:["greentahini","dillmustard","ponzu","chraime","gremolata","chermSauce","mojo"],
    combos:[{t:["Miso–mirin glaze"],sub:"roast salmon, deeply savoury — sushi-love in dinner form",r:"easia",fl:["umami","sweet"],se:"winter",mo:"cozy",new:true,fish:true},
-     {t:["Chermoula"],sub:"herb-cumin marinade, the classic Maghreb fish move",r:"maghreb",fl:["herby","bright"],se:"summer",mo:"fresh & light",new:true,fish:true},
+     {t:["Chermoula"],sub:"herb-cumin marinade, the classic Maghreb fish move",r:"maghreb",fl:["herby","citrusy"],se:"summer",mo:"fresh & light",new:true,fish:true},
      {t:["Dill–mustard"],sub:"the Scandi salmon sauce — start the fish section here",r:"cee",fl:["tangy","herby"],se:"summer",mo:"dinner-party",new:true,fish:true},
      {t:["Chraime"],sub:"poach fillets in spiced tomato-pepper — no frying, no smell",r:"maghreb",fl:["spicy-hot","warm-spiced"],se:"autumn",mo:"cozy",new:true,fish:true}]},
   {name:"Roasted veg",hu:"karfiol / cukkini / padlizsán",fish:false,sea:["raselhanout","baharat","harissaS","dukkah","sagebutter","berbere"],
@@ -512,7 +520,7 @@ const CORES=[
      {t:["Charred peppers","romesco"],sub:"Spanish pepper-almond sauce, new + so good",r:"med",fl:["nutty","smoky"],se:"autumn",mo:"dinner-party",new:true}]},
   {name:"Beans & lentils",hu:"bab / lencse / csicseri",fish:false,sea:["mexican","baharat","berbere","sharena"],
    sau:["bissara","borani","salsa","gremolata","zhoug","greentahini","pikliz"],
-   combos:[{t:["White beans","gremolata + lemon"],sub:"5 minutes, brightens a whole tin of beans",r:"med",fl:["bright","herby"],se:"spring",mo:"quick & lazy",new:true},
+   combos:[{t:["White beans","gremolata + lemon"],sub:"5 minutes, brightens a whole tin of beans",r:"med",fl:["citrusy","herby"],se:"spring",mo:"quick & lazy",new:true},
      {t:["Berbere lentils"],sub:"Ethiopian misir-wot energy — new region, one blend",r:"maghreb",fl:["spicy-hot","warm-spiced"],se:"winter",mo:"adventurous",new:true}]},
   {name:"Tofu",hu:"tofu",fish:false,sea:["gochu","fivespice","cajun"],sau:["satay","ponzu","misoglaze","gochujangglaze"],
    combos:[{t:["Gochujang-glazed tofu"],sub:"crisp-edged, sticky, over the sesame slaw",r:"easia",fl:["spicy-hot","sweet"],se:"all-year",mo:"punchy",new:true},
@@ -522,13 +530,13 @@ const CORES=[
      {t:["Soft eggs","muhammara toast"],sub:"you already make muhammara — redeploy it",r:"levant",fl:["nutty","smoky"],se:"autumn",mo:"cozy"}]}
 ];
 (function(){
-  const facets=$("#facets");const sel={};const tg={new:false,fish:false};const isOn=(dim,val)=>(sel[dim]||[]).includes(val);
+  const facets=$("#facets");const sel={};const tg={new:false};const isOn=(dim,val)=>(sel[dim]||[]).includes(val);
   function fr(label,dim,vals,col){const r=ce("div");r.className="facetrow";r.innerHTML=`<span class="glab">${label}</span>`;
     vals.forEach(v=>{const b=ce("button");b.className="tag";b.setAttribute("aria-pressed","false");b.dataset.dim=dim;b.dataset.val=v;
       b.innerHTML=(col?`<span class="rd" style="--c:${REGIONS[v].c}"></span>`:``)+(dim==="region"?REGIONS[v].label:lab(v));
       b.addEventListener("click",()=>setF(dim,v));r.appendChild(b);});facets.appendChild(r);}
   (function(){const r=ce("div");r.className="facetrow";r.innerHTML=`<span class="glab">quick</span>`;
-    [["new","✦ New only"],["fish","🐟 Fish-friendly"]].forEach(([k,l])=>{const b=ce("button");b.className="tag toggle";b.setAttribute("aria-pressed","false");b.textContent=l;
+    [["new","✦ New only"]].forEach(([k,l])=>{const b=ce("button");b.className="tag toggle";b.setAttribute("aria-pressed","false");b.textContent=l;
       b.addEventListener("click",()=>{tg[k]=!tg[k];b.setAttribute("aria-pressed",tg[k]);ap();});r.appendChild(b);});facets.appendChild(r);})();
   fr("region","region",Object.keys(REGIONS),true);
   const A=new Set(),B=new Set(),C=new Set();
@@ -542,13 +550,13 @@ const CORES=[
     c.innerHTML=`<span class="name">${e.n}</span>`+(e.cav?`<span class="cav" title="${e.cav}">△</span>`:``);
     c.addEventListener("click",()=>insp(k,d,c));return c;}
   CORES.forEach(core=>{const el=ce("section");el.className="core";
-    el.innerHTML=`<h2>${core.name} <span class="hu">${core.hu}</span>`+(core.fish?`<span class="fishtag">the fish on-ramp</span>`:``)+`</h2>`;
+    el.innerHTML=`<h2>${core.name} <span class="hu">${core.hu}</span>`+`</h2>`;
     const b1=ce("div");b1.className="band";b1.innerHTML=`<p class="h">Seasoning profiles</p>`;const c1=ce("div");c1.className="chips";core.sea.forEach(k=>c1.appendChild(chipEl(k,SEA)));b1.appendChild(c1);el.appendChild(b1);
     const b2=ce("div");b2.className="band";b2.innerHTML=`<p class="h">Sauces &amp; dips</p>`;const c2=ce("div");c2.className="chips";core.sau.forEach(k=>c2.appendChild(chipEl(k,SAU)));b2.appendChild(c2);el.appendChild(b2);
     const cb=ce("div");cb.className="combos";cb.innerHTML=`<p class="h">★ Try this</p>`;
     core.combos.forEach((cm,ci)=>{const d=ce("div");d.className="combo";const cid=core.name+"||"+ci;
       d.dataset.tags=JSON.stringify({r:cm.r,fl:cm.fl,se:[cm.se],mo:[cm.mo],new:!!cm.new,fish:!!(cm.fish||core.fish)});
-      d.innerHTML=`<span class="star">★</span><span>${cm.t.map(x=>`<b>${x}</b>`).join(" + ")}${(cm.new?`<span class="ct2 new">new</span>`:``)+((cm.fish||core.fish)?`<span class="ct2 fish">fish</span>`:``)}<button class="addbtn" data-cid="${cid}">+ menü</button><br><span class="sub">${cm.sub}</span></span>`;
+      d.innerHTML=`<span class="star">★</span><span>${cm.t.map(x=>`<b>${x}</b>`).join(" + ")}${(cm.new?`<span class="ct2 new">new</span>`:``)}<button class="addbtn" data-cid="${cid}">+ menü</button><br><span class="sub">${cm.sub}</span></span>`;
       d.querySelector(".addbtn").addEventListener("click",ev=>{ev.stopPropagation();
         toggleMenu("combo",cid,{label:cm.t.join(" + "),sub:cm.sub,core:core.name,r:cm.r});});
       cb.appendChild(d);});
@@ -584,16 +592,16 @@ const CORES=[
   function passSel(o){for(const dim in sel){const v=sel[dim];if(!v.length)continue;
     if(dim==="region"){if(!v.includes(o.r))return false;}
     else if(!anyIn(v,o[M[dim]]||[]))return false;}return true;}
-  function em(k,d){const e=d[k];if(tg.new&&stat(k)!=="new")return false;if(tg.fish&&!e.fish)return false;return passSel(e);}
-  function cm2(t){if(tg.new&&!t.new)return false;if(tg.fish&&!t.fish)return false;return passSel(t);}
-  function uc(){$("#clear").hidden=!(Object.keys(sel).length||tg.new||tg.fish||$("#inspector").classList.contains("on"));}
-  function ap(){const f=Object.keys(sel).length||tg.new||tg.fish;let lit=0,tot=0;
+  function em(k,d){const e=d[k];if(tg.new&&stat(k)!=="new")return false;return passSel(e);}
+  function cm2(t){if(tg.new&&!t.new)return false;return passSel(t);}
+  function uc(){$("#clear").hidden=!(Object.keys(sel).length||tg.new||$("#inspector").classList.contains("on"));}
+  function ap(){const f=Object.keys(sel).length||tg.new;let lit=0,tot=0;
     document.querySelectorAll("#grid .chip").forEach(c=>{tot++;const d=c.dataset.dict==="SEA"?SEA:SAU;const m=em(c.dataset.key,d);
       c.classList.toggle("dim",f&&!m);c.classList.toggle("match",!!f&&m);if(m)lit++;});
     document.querySelectorAll("#grid .combo").forEach(d=>d.classList.toggle("dim",f&&!cm2(JSON.parse(d.dataset.tags))));
     document.querySelectorAll("#grid .core").forEach(co=>co.classList.toggle("dim",f&&![...co.querySelectorAll(".chip")].some(c=>!c.classList.contains("dim"))));
     $("#count").textContent=f?`${lit} of ${tot} pairings lit`:`${tot} pairings across ${CORES.length} cores`;uc();}
-  $("#clear").addEventListener("click",()=>{for(const k in sel)delete sel[k];tg.new=false;tg.fish=false;
+  $("#clear").addEventListener("click",()=>{for(const k in sel)delete sel[k];tg.new=false;
     document.querySelectorAll("#facets .tag").forEach(t=>t.setAttribute("aria-pressed","false"));closeI();ap();});
   ap();
 })();
@@ -605,7 +613,7 @@ const BASE_MENUS=[{"name":"Menu 1","items":["Sült karaj savanyú káposztával 
 /* ===================== COOKBOOK (progressive) ===================== */
 (function(){
   const facets=$("#cbFacets"),grid=$("#cbGrid"),empty=$("#cbEmpty");
-  const DIMS={type:"ty",region:"r",season:"se",flavor:"fl",mood:"mo",effort:"eff",diet:"veg",written:"mem"};
+  const DIMS={type:"ty",region:"r",season:"se",flavor:"fl",mood:"mo",effort:"eff",diet:"veg",written:"mem",status:"st"};
   const sel={}; const PIN={name:null};
   const rows={};
   function addRow(label,dim,vals,col){
@@ -620,16 +628,18 @@ const BASE_MENUS=[{"name":"Menu 1","items":["Sült karaj savanyú káposztával 
   addRow("dish type","type",TYPE_ORDER.filter(x=>has(0,"ty").includes(x)),false);
   addRow("region","region",Object.keys(REGIONS),true);
   addRow("season","season",SEASON_ORDER.filter(x=>has(0,"se").includes(x)),false);
-  addRow("flavour","flavor",FLAVOR_ORDER.filter(x=>has(0,"fl").includes(x)),false);
+  addRow("flavor profile","flavor",FLAVOR_ORDER.filter(x=>has(0,"fl").includes(x)),false);
   addRow("mood","mood",MOOD_ORDER.filter(x=>has(0,"mo").includes(x)),false);
   addRow("effort","effort",EFFORT_ORDER.filter(x=>has(0,"eff").includes(x)),false);
   addRow("diet","diet",["veg","vegan"].filter(x=>has(0,"veg").includes(x)),false);
   addRow("recipe","written",["written","fejből"],false);
+  addRow("status","status",["new","cooked"],false);
 
   function dishHas(d,dim,val){
     const f=DIMS[dim];
     if(dim==="diet"){const g=dv(d,"veg");return g==="vegan"?true:g===val;}
     if(dim==="written"){const has=hasRecipe(d);return val==="written"?has:!has;}
+    if(dim==="status")return dishStat(d)===val;
     const v=dv(d,f);return Array.isArray(v)?v.includes(val):v===val;
   }
   function matches(d,ignore){
@@ -665,16 +675,17 @@ const BASE_MENUS=[{"name":"Menu 1","items":["Sült karaj savanyú káposztával 
   }
   function card(d){
     const el=ce("article");el.className="dish";el.dataset.name=d.n;
-    el.innerHTML=`<div class="dh"><span class="rdot" style="background:${REGIONS[dv(d,"r")].c}"></span><h3>${d.n}</h3>`+
+    el.innerHTML=`<div class="dh"><span class="rdot" style="background:${REGIONS[dv(d,"r")].c}"></span><h3>${DN(d)}</h3>`+
       (d.en?`<span class="en">${d.en}</span>`:``)+
       `<button class="addbtn${inMenu("dish",d.n)?" in":""}" data-did="1">${inMenu("dish",d.n)?"✓ menü":"+ menü"}</button>`+
-      `<button class="editbtn">tags</button>`+
+      `<button class="editbtn">tags</button>`+`<button class="editbtn statbtn">${dishStat(d)==="new"?"✦ new":"✓ cooked"}</button>`+
       `<button class="delbtn" title="delete recipe" aria-label="delete recipe"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 7h14M10 7V5.5a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1V7M7 7l.8 12a1 1 0 0 0 1 1h6.4a1 1 0 0 0 1-1L18 7M10.5 11v5M13.5 11v5"/></svg></button>`+
       `<span class="open-i">+</span></div>`;
     el.querySelector(".addbtn").addEventListener("click",e=>{e.stopPropagation();toggleMenu("dish",d.n);});
     el.querySelector(".editbtn").addEventListener("click",e=>{e.stopPropagation();el.classList.toggle("editing");});
+    el.querySelector(".statbtn").addEventListener("click",e=>{e.stopPropagation();setDish(d.n,"st",dishStat(d)==="new"?"cooked":"new");});
     el.querySelector(".delbtn").addEventListener("click",e=>{e.stopPropagation();
-      if(confirm(`Delete “${d.n}”? ${d.custom?"This removes it for good.":"You can restore it from the deleted list."}`))delDish(d.n);});
+      if(confirm(`Delete “${DN(d)}”? ${d.custom?"This removes it for good.":"You can restore it from the deleted list."}`))delDish(d.n);});
     const m=ce("div");m.className="mini";
     const mt=(dim,val,label,col)=>{const b=ce("button");b.className="mtag";b.setAttribute("aria-pressed",sel[dim]===val);
       b.innerHTML=(col?`<span class="rd" style="background:${REGIONS[val].c}"></span>`:``)+label;
@@ -686,13 +697,13 @@ const BASE_MENUS=[{"name":"Menu 1","items":["Sült karaj savanyú káposztával 
     if(d.mem&&!hasRecipe(d)){const b=ce("span");b.className="mtag mem flag";b.title="you cook this from memory — no method written in the book";b.textContent="fejből";m.appendChild(b);}
     if(d.custom){const b=ce("span");b.className="mtag cust flag";b.title="a recipe you added";b.textContent="custom";m.appendChild(b);}
     if(dv(d,"veg")){const b=mt("diet",dv(d,"veg"),dv(d,"veg"),false);b.classList.add("veg");m.appendChild(b);}
-    if(d.cav){const x=ce("span");x.className="mtag exceso flag";x.title=d.cav;x.textContent="△";m.appendChild(x);}
+    const _cav=dv(d,"cav");if(_cav){const x=ce("span");x.className="mtag exceso flag";x.title=_cav;x.textContent="△";m.appendChild(x);}
     el.appendChild(m);
     const rec=ce("div");rec.className="recipe";
     const _secs=getSecs(d);
     const _orig=x=>x.replace(/\(([^)]*\b(?:ounces?|oz|cups?|bögre|tablespoons?|tbsp|teaspoons?|tsp|pounds?|lbs?)\b[^)]*)\)/g,'<span class="orig">($1)</span>');
     if(!_secs.length){rec.innerHTML=`<p class="memline">No method written down yet — tap “tags” below to add ingredients &amp; steps (and fix any tags while you're here).</p>`;}
-    else rec.innerHTML=(d.cav?`<p class="cavline">△ ${d.cav}</p>`:``)+_secs.map(s=>
+    else rec.innerHTML=(dv(d,"cav")?`<p class="cavline">△ ${dv(d,"cav")}</p>`:``)+_secs.map(s=>
       (s.t?`<p class="rh sec">${s.t}</p>`:``)+
       ((s.ing&&s.ing.length)?`<p class="rh">Ingredients</p><ul>`+s.ing.map(x=>`<li>${_orig(x)}</li>`).join("")+`</ul>`:``)+
       ((s.steps&&s.steps.length)?`<p class="rh">Method</p><ol>`+s.steps.map(x=>`<li>${x}</li>`).join("")+`</ol>`:``)
@@ -700,6 +711,11 @@ const BASE_MENUS=[{"name":"Menu 1","items":["Sült karaj savanyú káposztával 
     el.appendChild(rec);
 
     const ed=ce("div");ed.className="editor";
+    const rnrow=ce("div");rnrow.className="erow";rnrow.innerHTML=`<span class="el">rename</span>`;
+    const rn=ce("input");rn.className="renameinput";rn.value=DN(d);rn.placeholder="display name";
+    rn.addEventListener("click",ev=>ev.stopPropagation());
+    rn.addEventListener("change",()=>{const v=rn.value.trim();setDish(d.n,"dn",(v&&v!==d.n)?v:null);});
+    rnrow.appendChild(rn);ed.appendChild(rnrow);
     const mk=(label,field,opts,multi,coloured)=>{
       const row=ce("div");row.className="erow";row.innerHTML=`<span class="el">${label}</span>`;
       opts.forEach(o=>{
@@ -718,10 +734,14 @@ const BASE_MENUS=[{"name":"Menu 1","items":["Sült karaj savanyú káposztával 
     mk("region","r",Object.keys(REGIONS),false,true);
     mk("type","ty",TYPE_ORDER,false,false);
     mk("season","se",SEASON_ORDER,true,false);
-    mk("flavour","fl",FLAVOR_ORDER,true,false);
+    mk("flavor profile","fl",FLAVOR_ORDER,true,false);
     mk("mood","mo",MOOD_ORDER,true,false);
     mk("effort","eff",EFFORT_ORDER,false,false);
     mk("diet","veg",["veg","vegan"],false,false);
+    const hcrow=ce("div");hcrow.className="erow";hcrow.innerHTML=`<span class="el">calories</span>`;
+    const hc=ce("button");hc.className="eopt";hc.textContent="△ high-calorie";hc.setAttribute("aria-pressed",!!dv(d,"cav"));
+    hc.addEventListener("click",ev=>{ev.stopPropagation();setDish(d.n,"cav",dv(d,"cav")?null:"high-calorie");});
+    hcrow.appendChild(hc);ed.appendChild(hcrow);
     const rw=ce("div");rw.className="erow";rw.style.display="block";
     rw.innerHTML=`<p class="el" style="margin:8px 0 4px">recipe — one item / step per line; add a section for a sub-block (meat, sauce, side…)</p>`;
     let working=JSON.parse(JSON.stringify(getSecs(d)));
@@ -803,8 +823,8 @@ const BASE_MENUS=[{"name":"Menu 1","items":["Sült karaj savanyú káposztával 
       `<p class="sub">${types.join(" · ")}</p>`;
     byReg[r].sort((a,b)=>TYPE_ORDER.indexOf(dv(a,"ty"))-TYPE_ORDER.indexOf(dv(b,"ty"))||a.n.localeCompare(b.n,"hu"))
       .forEach(d=>{const row=ce("div");row.className="lrow";
-        row.innerHTML=`<span class="ltype">${dv(d,"ty")}</span><span>${d.n}</span>`+
-          `<span class="lflags">`+(dv(d,"veg")?`<span class="v">${dv(d,"veg")}</span>`:``)+(d.cav?`<span class="x">△</span>`:``)+((d.mem&&!hasRecipe(d))?`<span class="m">fejből</span>`:``)+(d.custom?`<span class="m">custom</span>`:``)+(dv(d,"eff")?`<span class="e">${dv(d,"eff")}</span>`:``)+`</span>`;
+        row.innerHTML=`<span class="ltype">${dv(d,"ty")}</span><span>${DN(d)}</span>`+
+          `<span class="lflags">`+(dv(d,"veg")?`<span class="v">${dv(d,"veg")}</span>`:``)+(dv(d,"cav")?`<span class="x">△</span>`:``)+((d.mem&&!hasRecipe(d))?`<span class="m">fejből</span>`:``)+(d.custom?`<span class="m">custom</span>`:``)+(dv(d,"eff")?`<span class="e">${dv(d,"eff")}</span>`:``)+`</span>`;
         row.addEventListener("click",()=>window.__cbShow(d.n));
         g.appendChild(row);});
     wrap.appendChild(g);
@@ -841,14 +861,14 @@ const BASE_MENUS=[{"name":"Menu 1","items":["Sült karaj savanyú káposztával 
         const d=findDish(it);
         const row=ce("div");row.className="lrowx";
         row.innerHTML=`<span class="rdot" style="background:${d?REGIONS[dv(d,"r")].c:"var(--ink-faint)"}"></span>`+
-          `<span>${it}</span>`+(d?``:`<span class="nf">not in cookbook</span>`);
+          `<span>${d?DN(d):it}</span>`+(d?``:`<span class="nf">not in cookbook</span>`);
         const rm=ce("button");rm.className="rm";rm.textContent="✕";
         rm.onclick=()=>{lst.items.splice(ii,1);saveState();render();};
         row.appendChild(rm);s.appendChild(row);});
       const aw=ce("div");aw.className="addwrap";
       const sel=ce("select");
       sel.innerHTML=`<option value="">+ add a dish from the cookbook…</option>`+
-        AD().slice().sort((a,b)=>a.n.localeCompare(b.n,"hu")).map(d=>`<option>${d.n}</option>`).join("");
+        AD().slice().sort((a,b)=>a.n.localeCompare(b.n,"hu")).map(d=>`<option value="${d.n}">${DN(d)}</option>`).join("");
       sel.onchange=()=>{if(sel.value){lst.items.push(sel.value);saveState();render();}};
       const free=ce("input");free.placeholder="…or type anything + Enter";
       free.onkeydown=e=>{if(e.key==="Enter"&&free.value.trim()){lst.items.push(free.value.trim());saveState();render();}};
@@ -875,8 +895,8 @@ const BASE_MENUS=[{"name":"Menu 1","items":["Sült karaj savanyú káposztával 
       const s=ce("section");s.className="msec";s.innerHTML=`<h2>Dishes</h2>`;
       D.forEach(it=>{const d=findByName(it.id);if(!d)return;
         const row=ce("div");row.className="mitem";
-        row.innerHTML=`<span class="rdot" style="background:${REGIONS[d.r].c}"></span><span>${d.n}</span>`+
-          `<span class="msub">${d.ty}${d.eff?" · "+d.eff:""}${d.veg?" · "+d.veg:""}${d.mem?" · fejből":""}${d.cav?" · △":""}</span>`;
+        row.innerHTML=`<span class="rdot" style="background:${REGIONS[d.r].c}"></span><span>${DN(d)}</span>`+
+          `<span class="msub">${d.ty}${d.eff?" · "+d.eff:""}${d.veg?" · "+d.veg:""}${d.mem?" · fejből":""}${dv(d,"cav")?" · △":""}</span>`;
         const rm=ce("button");rm.className="rm";rm.textContent="✕";rm.title="remove";
         rm.addEventListener("click",()=>toggleMenu("dish",it.id));
         row.appendChild(rm);s.appendChild(row);});
