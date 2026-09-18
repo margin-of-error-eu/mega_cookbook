@@ -178,6 +178,9 @@
 
   /* list view */
   .listwrap{max-width:800px}
+  .listsearch{width:100%;max-width:800px;font:inherit;font-size:.95rem;background:var(--bg2);color:var(--ink);border:1px solid var(--panel-edge);border-radius:10px;padding:9px 13px;margin:0 0 18px}
+  .listsearch:focus{outline:1px solid var(--hi)}
+  .listsearch::placeholder{color:var(--ink-faint)}
   .lgroup{margin:0 0 26px}
   .lgroup h2{font-family:"Fraunces",Georgia,serif;font-weight:500;font-size:1.2rem;margin:0 0 4px;display:flex;align-items:center;gap:9px}
   .lgroup h2 .rdot{width:10px;height:10px;border-radius:50%}
@@ -216,7 +219,7 @@
   <h1>Ízmátrix</h1>
   <p class="equation"><b>core</b><span class="x">×</span>seasoning<span class="x">×</span>sauce</p>
 
-  <div class="syncbar"><span id="syncState" class="syncbadge">starting…</span><span class="buildstamp">build 2026-09-18b</span></div>
+  <div class="syncbar"><span id="syncState" class="syncbadge">starting…</span><span class="buildstamp">build 2026-09-18c</span></div>
   <div class="tabs" role="tablist">
     <button class="tabbtn" role="tab" data-tab="matrix" aria-selected="true">Flavor Matrix</button>
     <button class="tabbtn" role="tab" data-tab="cookbook" aria-selected="false">Cookbook</button>
@@ -268,6 +271,7 @@
 
   <div class="panel" id="panel-list">
     <div class="statusbar"><span class="count" id="lCount"></span><span class="hint">grouped by region · tap a dish to jump to its recipe</span></div>
+    <input id="listSearch" class="listsearch" type="search" placeholder="search a dish name or ingredient…" autocomplete="off">
     <div class="listwrap" id="listWrap"></div>
   </div>
 
@@ -303,7 +307,7 @@ const FLAVOR_ORDER=["earthy","herby","citrusy","spicy-hot","smoky","nutty","swee
 const SEASON_ORDER=["spring","summer","autumn","winter","all-year"];
 const MOOD_ORDER=["cozy","fresh & light","punchy","dinner-party","quick & lazy","adventurous"];
 const EFFORT_ORDER=["easy","medium","project"];
-const TYPE_ORDER=["soup","main","dinner","side","snack","dip","breakfast","dessert"];
+const TYPE_ORDER=["soup","main","dinner","side","snack","dip","sauce","breakfast","dessert"];
 const LABEL={bright:"bright & citrusy",tangy:"tangy / sour",umami:"umami / savoury",fermented:"funky / fermented"};
 const lab=t=>LABEL[t]||t;
 
@@ -810,12 +814,19 @@ const BASE_MENUS=[{"name":"Menu 1","items":["Sült karaj savanyú káposztával 
 /* ===================== LIST ===================== */
 (function(){
   window.__listRender=render;
+  {const _ls=$("#listSearch");if(_ls)_ls.addEventListener("input",render);}
   function render(){
   const wrap=$("#listWrap");wrap.innerHTML="";
-  const byReg={};AD().forEach(d=>{const r=dv(d,"r");(byReg[r]=byReg[r]||[]).push(d);});
+  const si=$("#listSearch");const raw=si?si.value.trim():"";
+  const norm=s=>(s||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase();
+  const q=norm(raw);
+  const hay=d=>norm(DN(d)+" "+d.n+" "+getSecs(d).flatMap(s=>(s.ing||[])).join(" "));
+  const pool=q?AD().filter(d=>hay(d).includes(q)):AD();
+  const byReg={};pool.forEach(d=>{const r=dv(d,"r");(byReg[r]=byReg[r]||[]).push(d);});
   const order=Object.keys(REGIONS).filter(r=>byReg[r]);
   window.__listRerender=null;
-  $("#lCount").textContent=`${AD().length} dishes · ${order.length} regions`;
+  $("#lCount").textContent=q?`${pool.length} match${pool.length===1?"":"es"} for “${raw}”`:`${AD().length} dishes · ${order.length} regions`;
+  if(q&&!pool.length){wrap.innerHTML=`<p style="color:var(--ink-faint)">No dishes match “${raw}”.</p>`;return;}
   order.forEach(r=>{
     const g=ce("section");g.className="lgroup";
     const types=[...new Set(byReg[r].map(d=>dv(d,"ty")))].sort((a,b)=>TYPE_ORDER.indexOf(a)-TYPE_ORDER.indexOf(b));
