@@ -216,7 +216,7 @@
   <h1>Ízmátrix</h1>
   <p class="equation"><b>core</b><span class="x">×</span>seasoning<span class="x">×</span>sauce</p>
 
-  <div class="syncbar"><span id="syncState" class="syncbadge">starting…</span><span class="buildstamp">build 2026-09-18</span></div>
+  <div class="syncbar"><span id="syncState" class="syncbadge">starting…</span><span class="buildstamp">build 2026-09-18b</span></div>
   <div class="tabs" role="tablist">
     <button class="tabbtn" role="tab" data-tab="matrix" aria-selected="true">Flavor Matrix</button>
     <button class="tabbtn" role="tab" data-tab="cookbook" aria-selected="false">Cookbook</button>
@@ -625,13 +625,13 @@ const BASE_MENUS=[{"name":"Menu 1","items":["Sült karaj savanyú káposztával 
     facets.appendChild(r);rows[dim]=r;
   }
   const has=(k,f)=>[...new Set(AD().flatMap(d=>Array.isArray(dv(d,f))?dv(d,f):[dv(d,f)]).filter(Boolean))];
-  addRow("dish type","type",TYPE_ORDER.filter(x=>has(0,"ty").includes(x)),false);
+  addRow("dish type","type",TYPE_ORDER,false);
   addRow("region","region",Object.keys(REGIONS),true);
-  addRow("season","season",SEASON_ORDER.filter(x=>has(0,"se").includes(x)),false);
-  addRow("flavor profile","flavor",FLAVOR_ORDER.filter(x=>has(0,"fl").includes(x)),false);
-  addRow("mood","mood",MOOD_ORDER.filter(x=>has(0,"mo").includes(x)),false);
-  addRow("effort","effort",EFFORT_ORDER.filter(x=>has(0,"eff").includes(x)),false);
-  addRow("diet","diet",["veg","vegan"].filter(x=>has(0,"veg").includes(x)),false);
+  addRow("season","season",SEASON_ORDER,false);
+  addRow("flavor profile","flavor",FLAVOR_ORDER,false);
+  addRow("mood","mood",MOOD_ORDER,false);
+  addRow("effort","effort",EFFORT_ORDER,false);
+  addRow("diet","diet",["veg","vegan"],false);
   addRow("recipe","written",["written","fejből"],false);
   addRow("status","status",["new","cooked"],false);
 
