@@ -219,7 +219,7 @@
   <h1>Ízmátrix</h1>
   <p class="equation"><b>core</b><span class="x">×</span>seasoning<span class="x">×</span>sauce</p>
 
-  <div class="syncbar"><span id="syncState" class="syncbadge">starting…</span><span class="buildstamp">build 2026-09-18c</span></div>
+  <div class="syncbar"><span id="syncState" class="syncbadge">starting…</span><span class="buildstamp">build 2026-09-25b</span></div>
   <div class="tabs" role="tablist">
     <button class="tabbtn" role="tab" data-tab="matrix" aria-selected="true">Flavor Matrix</button>
     <button class="tabbtn" role="tab" data-tab="cookbook" aria-selected="false">Cookbook</button>
@@ -303,7 +303,8 @@ const REGIONS={
   easia:{label:"East Asia",c:"var(--easia)"},sasia:{label:"South Asia",c:"var(--sasia)"},
   cee:{label:"Central Europe",c:"var(--cee)"},carib:{label:"Caribbean",c:"var(--carib)"},other:{label:"Other",c:"var(--other)"}
 };
-const FLAVOR_ORDER=["earthy","herby","citrusy","spicy-hot","smoky","nutty","sweet","tangy","umami","warm-spiced","fresh","creamy","fermented"];
+const FLAVOR_ORDER=["earthy","herby","citrusy","spicy-hot","smoky","nutty","sweet","tangy","umami","warm-spiced","fresh","creamy","fermented"]
+const KITCHEN_ORDER=["french","italian","greek","hungarian","germanic","chinese","indian","japanese","mexican","cajun","creole"];
 const SEASON_ORDER=["spring","summer","autumn","winter","all-year"];
 const MOOD_ORDER=["cozy","fresh & light","punchy","dinner-party","quick & lazy","adventurous"];
 const EFFORT_ORDER=["easy","medium","project"];
@@ -617,7 +618,7 @@ const BASE_MENUS=[{"name":"Menu 1","items":["Sült karaj savanyú káposztával 
 /* ===================== COOKBOOK (progressive) ===================== */
 (function(){
   const facets=$("#cbFacets"),grid=$("#cbGrid"),empty=$("#cbEmpty");
-  const DIMS={type:"ty",region:"r",season:"se",flavor:"fl",mood:"mo",effort:"eff",diet:"veg",written:"mem",status:"st"};
+  const DIMS={type:"ty",region:"r",season:"se",kitchen:"kit",mood:"mo",effort:"eff",diet:"veg",written:"mem",status:"st"};
   const sel={}; const PIN={name:null};
   const rows={};
   function addRow(label,dim,vals,col){
@@ -632,7 +633,7 @@ const BASE_MENUS=[{"name":"Menu 1","items":["Sült karaj savanyú káposztával 
   addRow("dish type","type",TYPE_ORDER,false);
   addRow("region","region",Object.keys(REGIONS),true);
   addRow("season","season",SEASON_ORDER,false);
-  addRow("flavor profile","flavor",FLAVOR_ORDER,false);
+  addRow("kitchen","kitchen",KITCHEN_ORDER,false);
   addRow("mood","mood",MOOD_ORDER,false);
   addRow("effort","effort",EFFORT_ORDER,false);
   addRow("diet","diet",["veg","vegan"],false);
@@ -682,7 +683,7 @@ const BASE_MENUS=[{"name":"Menu 1","items":["Sült karaj savanyú káposztával 
     el.innerHTML=`<div class="dh"><span class="rdot" style="background:${REGIONS[dv(d,"r")].c}"></span><h3>${DN(d)}</h3>`+
       (d.en?`<span class="en">${d.en}</span>`:``)+
       `<button class="addbtn${inMenu("dish",d.n)?" in":""}" data-did="1">${inMenu("dish",d.n)?"✓ menü":"+ menü"}</button>`+
-      `<button class="editbtn">tags</button>`+`<button class="editbtn statbtn">${dishStat(d)==="new"?"✦ new":"✓ cooked"}</button>`+
+      `<button class="editbtn">edit</button>`+`<button class="editbtn statbtn">${dishStat(d)==="new"?"✦ new":"✓ cooked"}</button>`+
       `<button class="delbtn" title="delete recipe" aria-label="delete recipe"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 7h14M10 7V5.5a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1V7M7 7l.8 12a1 1 0 0 0 1 1h6.4a1 1 0 0 0 1-1L18 7M10.5 11v5M13.5 11v5"/></svg></button>`+
       `<span class="open-i">+</span></div>`;
     el.querySelector(".addbtn").addEventListener("click",e=>{e.stopPropagation();toggleMenu("dish",d.n);});
@@ -706,7 +707,7 @@ const BASE_MENUS=[{"name":"Menu 1","items":["Sült karaj savanyú káposztával 
     const rec=ce("div");rec.className="recipe";
     const _secs=getSecs(d);
     const _orig=x=>x.replace(/\(([^)]*\b(?:ounces?|oz|cups?|bögre|tablespoons?|tbsp|teaspoons?|tsp|pounds?|lbs?)\b[^)]*)\)/g,'<span class="orig">($1)</span>');
-    if(!_secs.length){rec.innerHTML=`<p class="memline">No method written down yet — tap “tags” below to add ingredients &amp; steps (and fix any tags while you're here).</p>`;}
+    if(!_secs.length){rec.innerHTML=`<p class="memline">No method written down yet — tap “edit” below to add ingredients &amp; steps (and fix any tags while you're here).</p>`;}
     else rec.innerHTML=(dv(d,"cav")?`<p class="cavline">△ ${dv(d,"cav")}</p>`:``)+_secs.map(s=>
       (s.t?`<p class="rh sec">${s.t}</p>`:``)+
       ((s.ing&&s.ing.length)?`<p class="rh">Ingredients</p><ul>`+s.ing.map(x=>`<li>${_orig(x)}</li>`).join("")+`</ul>`:``)+
@@ -738,7 +739,7 @@ const BASE_MENUS=[{"name":"Menu 1","items":["Sült karaj savanyú káposztával 
     mk("region","r",Object.keys(REGIONS),false,true);
     mk("type","ty",TYPE_ORDER,false,false);
     mk("season","se",SEASON_ORDER,true,false);
-    mk("flavor profile","fl",FLAVOR_ORDER,true,false);
+    mk("kitchen","kit",KITCHEN_ORDER,true,false);
     mk("mood","mo",MOOD_ORDER,true,false);
     mk("effort","eff",EFFORT_ORDER,false,false);
     mk("diet","veg",["veg","vegan"],false,false);
